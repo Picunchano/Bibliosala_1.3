@@ -1,10 +1,4 @@
-<<<<<<< HEAD
-{
-    "sound_enabled": false,
-    "color_theme": "green"
-=======
 {
     "sound_enabled": true,
     "color_theme": "green"
->>>>>>> 60afa05422fad075c9a22e8d54eae8e369eb6486
 }
