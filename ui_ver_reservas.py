@@ -1,161 +1,123 @@
-# ui_ver_reservas.py
+# --- Archivo Actualizado: ui_ver_reservas.py ---
 import tkinter as tk
 from tkinter import ttk, messagebox
-import datetime
-from data_manager import cargar_reservas, eliminar_reservas_por_timestamps, play_sound
+from data_manager import get_all_reservations, eliminar_reservas_por_timestamps, play_sound_if_enabled
+from config import ICON_PATH  # <-- Se importa la ruta del ícono
 
 class VerReservasWindow(tk.Toplevel):
     def __init__(self, parent):
         super().__init__(parent)
         self.parent = parent
-        self.title("Ver Reservas")
-        self.geometry("1100x600") # Ampliado para nuevas columnas
-        self.grab_set()
-        self.transient(parent)
-        self.protocol("WM_DELETE_WINDOW", self._on_close)
 
-        self.reservas = []
-        self._crear_widgets()
-        self._cargar_reservas_en_tabla(modo_activo=True)
+        self.iconbitmap(ICON_PATH)  # <-- Se establece el ícono para esta ventana
+        self.title("Ver Reservas") #
+        self.geometry("900x600") #
+        self.grab_set() #
+        self.transient(parent) #
+        self.protocol("WM_DELETE_WINDOW", self._on_close) #
+
+        self.reservas_cargadas = [] #
+        self.selected_reservation_ids = set() #
+
+        self._crear_widgets() #
+        self._cargar_reservas() #
 
     def _crear_widgets(self):
-        modo_frame = ttk.Frame(self, padding="10")
-        modo_frame.pack(fill=tk.X)
+        main_frame = ttk.Frame(self, padding="10") #
+        main_frame.pack(expand=True, fill=tk.BOTH) #
 
-        self.modo_var = tk.StringVar(value="activas")
-        rb_activas = ttk.Radiobutton(modo_frame, text="Reservas Activas", variable=self.modo_var, value="activas", command=self._cambiar_modo_vista)
-        rb_activas.pack(side=tk.LEFT, padx=10)
-        rb_historial = ttk.Radiobutton(modo_frame, text="Historial de Reservas", variable=self.modo_var, value="historial", command=self._cambiar_modo_vista)
-        rb_historial.pack(side=tk.LEFT, padx=10)
+        tree_frame = ttk.Frame(main_frame) #
+        tree_frame.pack(expand=True, fill=tk.BOTH, pady=10) #
 
-        btn_frame = ttk.Frame(self, padding="10")
-        btn_frame.pack(fill=tk.X)
+        columns = ("ID", "RUT Alumno", "Nombre Completo", "Carrera", "Email", "Sala", "Fecha", "Hora Inicio", "Hora Fin", "Tipo") #
+        self.tree = ttk.Treeview(tree_frame, columns=columns, show="headings") #
 
-        ttk.Button(btn_frame, text="Actualizar Lista", command=self._actualizar_lista).pack(side=tk.LEFT, padx=5)
-        self.delete_button = ttk.Button(btn_frame, text="Eliminar Seleccionadas", command=self._eliminar_reservas, state=tk.DISABLED)
-        self.delete_button.pack(side=tk.RIGHT, padx=5)
+        for col in columns:
+            self.tree.heading(col, text=col, anchor=tk.CENTER) #
+            self.tree.column(col, anchor=tk.CENTER) #
+        
+        self.tree.column("ID", width=50) #
+        self.tree.column("RUT Alumno", width=90) #
+        self.tree.column("Nombre Completo", width=150) #
+        self.tree.column("Carrera", width=100) #
+        self.tree.column("Email", width=120) #
+        self.tree.column("Sala", width=60) #
+        self.tree.column("Fecha", width=90) #
+        self.tree.column("Hora Inicio", width=80) #
+        self.tree.column("Hora Fin", width=80) #
+        self.tree.column("Tipo", width=70) #
 
-        # Columnas actualizadas
-        columns = ("RUT", "Nombre Completo", "Carrera", "Email", "Sala", "Fecha Préstamo", "Hora Inicio", "Hora Fin", "Tipo Préstamo")
-        self.tree = ttk.Treeview(self, columns=columns, show="headings")
+        vsb = ttk.Scrollbar(tree_frame, orient="vertical", command=self.tree.yview) #
+        hsb = ttk.Scrollbar(tree_frame, orient="horizontal", command=self.tree.xview) #
+        self.tree.configure(yscrollcommand=vsb.set, xscrollcommand=hsb.set) #
+        vsb.pack(side="right", fill="y") #
+        hsb.pack(side="bottom", fill="x") #
+        self.tree.pack(expand=True, fill=tk.BOTH) #
 
-        self.tree.heading("RUT", text="RUT")
-        self.tree.heading("Nombre Completo", text="Nombre Completo")
-        self.tree.heading("Carrera", text="Carrera")
-        self.tree.heading("Email", text="Email")
-        self.tree.heading("Sala", text="Sala")
-        self.tree.heading("Fecha Préstamo", text="Fecha Préstamo")
-        self.tree.heading("Hora Inicio", text="Hora Inicio")
-        self.tree.heading("Hora Fin", text="Hora Fin")
-        self.tree.heading("Tipo Préstamo", text="Tipo Préstamo")
+        self.tree.bind("<<TreeviewSelect>>", self._on_tree_select) #
 
-        self.tree.column("RUT", width=90, anchor=tk.CENTER)
-        self.tree.column("Nombre Completo", width=160, anchor=tk.W)
-        self.tree.column("Carrera", width=100, anchor=tk.W)
-        self.tree.column("Email", width=150, anchor=tk.W)
-        self.tree.column("Sala", width=70, anchor=tk.CENTER)
-        self.tree.column("Fecha Préstamo", width=90, anchor=tk.CENTER)
-        self.tree.column("Hora Inicio", width=70, anchor=tk.CENTER)
-        self.tree.column("Hora Fin", width=70, anchor=tk.CENTER)
-        self.tree.column("Tipo Préstamo", width=90, anchor=tk.CENTER)
+        button_frame = ttk.Frame(main_frame) #
+        button_frame.pack(fill=tk.X, pady=10) #
 
-        self.tree.pack(expand=True, fill=tk.BOTH, padx=10, pady=10)
+        btn_actualizar = ttk.Button(button_frame, text="Actualizar Lista", command=self._cargar_reservas) #
+        btn_actualizar.pack(side="left", padx=5) #
 
-        scrollbar = ttk.Scrollbar(self.tree, orient="vertical", command=self.tree.yview)
-        self.tree.configure(yscrollcommand=scrollbar.set)
-        scrollbar.pack(side="right", fill="y")
+        btn_eliminar_seleccionadas = ttk.Button(button_frame, text="Eliminar Seleccionadas", command=self._eliminar_reservas_seleccionadas) #
+        btn_eliminar_seleccionadas.pack(side="left", padx=5) #
 
-        self.tree.bind("<<TreeviewSelect>>", self._on_treeview_select)
+    def _cargar_reservas(self):
+        play_sound_if_enabled() #
+        self.reservas_cargadas = get_all_reservations() #
 
-    def _cambiar_modo_vista(self):
-        play_sound()
-        modo_activo = (self.modo_var.get() == "activas")
-        self._cargar_reservas_en_tabla(modo_activo)
-        self.delete_button.config(state=tk.DISABLED)
+        for item in self.tree.get_children():
+            self.tree.delete(item)
+        
+        self.selected_reservation_ids.clear() #
 
-    def _actualizar_lista(self):
-        play_sound()
-        modo_activo = (self.modo_var.get() == "activas")
-        self._cargar_reservas_en_tabla(modo_activo)
-        messagebox.showinfo("Actualizado", "La lista de reservas ha sido actualizada.", parent=self)
-
-    def _cargar_reservas_en_tabla(self, modo_activo=True):
-        for i in self.tree.get_children():
-            self.tree.delete(i)
-
-        self.reservas = cargar_reservas()
-
-        now = datetime.datetime.now()
-
-        for reserva in self.reservas:
-            try:
-                iid = reserva.get('id_prestamo')
-
-                fecha_str = reserva.get('FechaPrestamo', 'N/A')
-                hora_inicio_str = reserva.get('HoraInicio', 'N/A')
-                hora_fin_str = reserva.get('HoraFin', 'N/A')
-
-                reserva_datetime_inicio = None
-                reserva_datetime_fin = None
-                try:
-                    fecha_obj = datetime.datetime.strptime(fecha_str, "%d/%m/%Y").date()
-                    hora_inicio_obj = datetime.datetime.strptime(hora_inicio_str, "%H:%M").time()
-                    hora_fin_obj = datetime.datetime.strptime(hora_fin_str, "%H:%M").time()
-
-                    reserva_datetime_inicio = datetime.datetime.combine(fecha_obj, hora_inicio_obj)
-                    reserva_datetime_fin = datetime.datetime.combine(fecha_obj, hora_fin_obj)
-                except ValueError:
-                    pass
-
-                is_active = False
-                if reserva_datetime_inicio and reserva_datetime_fin:
-                    is_active = (reserva_datetime_inicio <= now <= reserva_datetime_fin)
-
-                if modo_activo and not is_active:
-                    continue
-
-                values = (
-                    reserva.get('RUTAlumno', 'N/A'),
-                    reserva.get('NombreAlumnoCompleto', 'N/A'),
-                    reserva.get('CarreraAlumno', 'N/A'),
-                    reserva.get('EmailAlumno', 'N/A'),
-                    reserva.get('NumeroSala', 'N/A'),
-                    fecha_str,
-                    hora_inicio_str,
-                    hora_fin_str,
-                    reserva.get('IndividualOGrupal', 'N/A')
-                )
-                self.tree.insert("", tk.END, iid=iid, values=values)
-            except KeyError as e:
-                print(f"Advertencia: Datos de reserva incompletos o mal formados. Falta clave: {e}. Datos: {reserva}")
-
-    def _on_treeview_select(self, event):
-        selected_items = self.tree.selection()
-        if selected_items and self.modo_var.get() == "historial":
-            self.delete_button.config(state=tk.NORMAL)
+        if not self.reservas_cargadas: #
+            self.tree.insert("", "end", values=("No hay reservas para mostrar.", "", "", "", "", "", "", "", "", ""), tags=('no_data',)) #
+            self.tree.tag_configure('no_data', foreground='gray') #
         else:
-            self.delete_button.config(state=tk.DISABLED)
+            for reserva in self.reservas_cargadas: #
+                self.tree.insert("", "end", iid=reserva['id_prestamo'], #
+                                 values=(
+                                     reserva.get('id_prestamo', 'N/A'), #
+                                     reserva.get('RUTAlumno', 'N/A'), #
+                                     reserva.get('NombreAlumnoCompleto', 'N/A'), #
+                                     reserva.get('CarreraAlumno', 'N/A'), #
+                                     reserva.get('EmailAlumno', 'N/A'), #
+                                     reserva.get('NumeroSala', 'N/A'), #
+                                     reserva.get('FechaPrestamo', 'N/A'), #
+                                     reserva.get('HoraInicio', 'N/A'), #
+                                     reserva.get('HoraFin', 'N/A'), #
+                                     reserva.get('IndividualOGrupal', 'N/A') #
+                                 ))
 
-    def _eliminar_reservas(self):
-        play_sound()
-        selected_items = self.tree.selection()
-        if not selected_items:
-            messagebox.showwarning("Ninguna Selección", "Por favor, seleccione las reservas a eliminar.", parent=self)
+    def _on_tree_select(self, event):
+        current_selection = self.tree.selection() #
+        self.selected_reservation_ids.clear() #
+        for item_id in current_selection: #
+            self.selected_reservation_ids.add(int(item_id)) #
+
+    def _eliminar_reservas_seleccionadas(self):
+        play_sound_if_enabled() #
+        if not self.selected_reservation_ids: #
+            messagebox.showwarning("Advertencia", "No hay reservas seleccionadas para eliminar.", parent=self) #
             return
 
-        confirm = messagebox.askyesno("Confirmar Eliminación",
-                                      f"¿Está seguro de que desea eliminar {len(selected_items)} reserva(s) seleccionada(s)? Esta acción es irreversible.",
-                                      parent=self)
-        if confirm:
-            ids_to_delete = [self.tree.item(item)['iid'] for item in selected_items]
+        confirm = messagebox.askyesno(
+            "Confirmar Eliminación",
+            f"¿Estás seguro de que quieres eliminar {len(self.selected_reservation_ids)} reserva(s) seleccionada(s)?",
+            parent=self
+        ) #
 
-            if eliminar_reservas_por_timestamps(ids_to_delete):
-                messagebox.showinfo("Éxito", f"{len(ids_to_delete)} reserva(s) eliminada(s) correctamente.", parent=self)
-                self._cargar_reservas_en_tabla(modo_activo=False) # Recargar historial
+        if confirm: #
+            if eliminar_reservas_por_timestamps(list(self.selected_reservation_ids)): #
+                messagebox.showinfo("Éxito", "Reserva(s) eliminada(s) correctamente.", parent=self) #
+                self._cargar_reservas() #
             else:
-                messagebox.showerror("Error", "No se pudo eliminar la(s) reserva(s).", parent=self)
-        self.delete_button.config(state=tk.DISABLED)
-
+                messagebox.showerror("Error", "No se pudo eliminar la(s) reserva(s).", parent=self) #
+        
     def _on_close(self):
-        play_sound()
-        self.destroy()
+        play_sound_if_enabled() #
+        self.destroy() #

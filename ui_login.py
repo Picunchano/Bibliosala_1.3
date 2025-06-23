@@ -1,66 +1,61 @@
-# ui_login.py
-import tkinter as tk
-from tkinter import ttk, messagebox
-from config import ADMIN_USERNAME, ADMIN_PASSWORD # Importar credenciales fijas
-from data_manager import play_sound # Para el sonido
+# --- Archivo Actualizado: ui_login.py ---
+import customtkinter as ctk
+from tkinter import messagebox
+from data_manager import validate_user, play_sound_if_enabled
+from config import ICON_PATH  # <-- Se importa la ruta del ícono
 
-class LoginWindow(tk.Toplevel):
+class LoginWindow(ctk.CTkToplevel):
     def __init__(self, parent):
         super().__init__(parent)
         self.parent = parent
+        
+        self.iconbitmap(ICON_PATH)  # <-- Se establece el ícono para esta ventana
         self.title("Iniciar Sesión")
-        self.geometry("350x250")
+        self.geometry("350x280")
         self.resizable(False, False)
-        self.grab_set()  # Hace la ventana modal
-        self.transient(parent) # La ventana de login es hija de la principal
+        self.grab_set()
+        self.transient(parent)
 
-        # Centrar la ventana de login
-        self.update_idletasks()
-        x = parent.winfo_x() + (parent.winfo_width() // 2) - (self.winfo_width() // 2)
-        y = parent.winfo_y() + (parent.winfo_height() // 2) - (self.winfo_height() // 2)
-        self.geometry(f"+{x}+{y}")
-
+        self.after(20, self._center_window)
         self.protocol("WM_DELETE_WINDOW", self._on_closing)
-
         self._create_widgets()
 
+    def _center_window(self):
+        try:
+            self.update_idletasks()
+            x = self.parent.winfo_x() + (self.parent.winfo_width() // 2) - (self.winfo_width() // 2)
+            y = self.parent.winfo_y() + (self.parent.winfo_height() // 2) - (self.winfo_height() // 2)
+            self.geometry(f"+{x}+{y}")
+        except Exception as e:
+            print(f"DEBUG: No se pudo centrar la ventana de login: {e}")
+
     def _create_widgets(self):
-        main_frame = ttk.Frame(self, padding="20")
-        main_frame.pack(expand=True, fill=tk.BOTH)
-
-        # Título
-        ttk.Label(main_frame, text="Bienvenido", font=("Helvetica", 16, "bold")).pack(pady=10)
-
-        # Campo de Usuario
-        ttk.Label(main_frame, text="Usuario:").pack(anchor="w", pady=(10, 2))
-        self.username_entry = ttk.Entry(main_frame)
-        self.username_entry.pack(fill=tk.X, pady=(0, 10))
-        self.username_entry.focus_set() # Poner el foco al inicio
-
-        # Campo de Contraseña
-        ttk.Label(main_frame, text="Contraseña:").pack(anchor="w", pady=(10, 2))
-        self.password_entry = ttk.Entry(main_frame, show="*")
-        self.password_entry.pack(fill=tk.X, pady=(0, 10))
+        main_frame = ctk.CTkFrame(self, fg_color="transparent")
+        main_frame.pack(expand=True, fill='both', padx=25, pady=20)
+        ctk.CTkLabel(main_frame, text="Bienvenido", font=ctk.CTkFont(size=22, weight="bold")).pack(pady=10)
+        ctk.CTkLabel(main_frame, text="Usuario:").pack(anchor="w", pady=(10, 2))
+        self.username_entry = ctk.CTkEntry(main_frame, width=250)
+        self.username_entry.pack(fill='x', pady=(0, 10))
+        self.username_entry.focus_set()
+        ctk.CTkLabel(main_frame, text="Contraseña:").pack(anchor="w", pady=(10, 2))
+        self.password_entry = ctk.CTkEntry(main_frame, show="*", width=250)
+        self.password_entry.pack(fill='x', pady=(0, 20))
         self.password_entry.bind("<Return>", lambda event: self._attempt_login())
-
-        # Botón de Iniciar Sesión
-        login_button = ttk.Button(main_frame, text="Entrar", command=self._attempt_login)
-        login_button.pack(pady=10)
+        login_button = ctk.CTkButton(main_frame, text="Entrar", command=self._attempt_login, height=40)
+        login_button.pack(fill='x')
 
     def _attempt_login(self):
-        play_sound()
+        play_sound_if_enabled()
         username = self.username_entry.get()
         password = self.password_entry.get()
-
-        # Validación simple contra credenciales fijas
-        if username == ADMIN_USERNAME and password == ADMIN_PASSWORD:
-            self.parent.after_login_success() # Llama al método en la ventana principal
-            self.destroy() # Cierra la ventana de login
+        user = validate_user(username, password)
+        if user:
+            self.parent.after_login_success()
+            self.destroy()
         else:
             messagebox.showerror("Error de Autenticación", "Usuario o contraseña incorrectos.", parent=self)
-            self.password_entry.delete(0, tk.END) # Limpiar campo de contraseña
-            self.username_entry.focus_set() # Volver a poner el foco en el usuario
+            self.password_entry.delete(0, 'end')
+            self.username_entry.focus_set()
 
     def _on_closing(self):
-        # Si la ventana de login se cierra sin éxito, cierra la aplicación principal
         self.parent.destroy()
