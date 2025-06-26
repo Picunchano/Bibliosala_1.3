@@ -4,16 +4,18 @@ from tkinter import ttk, messagebox
 import datetime
 from data_manager import guardar_reserva, cargar_salas_disponibles, play_sound_if_enabled
 from db_connection import execute_query
-from config import ICON_PATH  # <-- Se importa la ruta del ícono
+from config import ICON_PATH
 
 class NuevaReservaWindow(tk.Toplevel):
     def __init__(self, parent):
         super().__init__(parent)
         self.parent = parent
+        
+        self.withdraw() # 1. Ocultar la ventana al nacer
 
-        self.iconbitmap(ICON_PATH)  # <-- Se establece el ícono para esta ventana
+        self.iconbitmap(ICON_PATH)
         self.title("Nueva Reserva")
-        self.geometry("500x650")
+        self.geometry("500x650") #
         self.resizable(False, False)
         self.grab_set()
         self.transient(parent)
@@ -22,8 +24,22 @@ class NuevaReservaWindow(tk.Toplevel):
         self.salas_disponibles = cargar_salas_disponibles()
         self._crear_widgets()
         self._establecer_fecha_hora_actual()
+        
+        self.after(10, self._center_and_show) # 2. Llamar a la función para centrar y mostrar
 
-    # ... (el resto del archivo no cambia) ...
+    def _center_and_show(self):
+        """Centra la ventana en la pantalla y la hace visible."""
+        try:
+            self.update_idletasks()
+            width = self.winfo_width()
+            height = self.winfo_height()
+            x = (self.winfo_screenwidth() // 2) - (width // 2)
+            y = (self.winfo_screenheight() // 2) - (height // 2)
+            self.geometry(f'{width}x{height}+{x}+{y}')
+        finally:
+            self.deiconify() # 3. Mostrar la ventana ya centrada
+
+    # ... (el resto del archivo no cambia)
     def _crear_widgets(self):
         form_frame = ttk.Frame(self, padding="15")
         form_frame.pack(expand=True, fill=tk.BOTH)

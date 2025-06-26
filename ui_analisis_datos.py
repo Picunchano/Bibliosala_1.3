@@ -4,22 +4,38 @@ from tkinter import ttk, messagebox, scrolledtext
 import datetime
 from collections import Counter
 from data_manager import get_all_reservations, play_sound_if_enabled
-from config import ICON_PATH  # <-- Se importa la ruta del ícono
+from config import ICON_PATH
 
 class AnalisisWindow(tk.Toplevel):
     def __init__(self, parent):
         super().__init__(parent)
         self.parent = parent
 
-        self.iconbitmap(ICON_PATH)  # <-- Se establece el ícono para esta ventana
-        self.title("Análisis de Datos de Reservas") #
-        self.geometry("700x600") #
-        self.grab_set() #
-        self.transient(parent) #
-        self.protocol("WM_DELETE_WINDOW", self._on_close) #
+        self.withdraw() # Ocultar
 
-        self.reservas = [] #
-        self._crear_widgets() #
+        self.iconbitmap(ICON_PATH)
+        self.title("Análisis de Datos de Reservas")
+        self.geometry("700x600")
+        self.grab_set()
+        self.transient(parent)
+        self.protocol("WM_DELETE_WINDOW", self._on_close)
+
+        self.reservas = []
+        self._crear_widgets()
+        
+        self.after(10, self._center_and_show) # Centrar y mostrar
+
+    def _center_and_show(self):
+        """Centra la ventana en la pantalla y la hace visible."""
+        try:
+            self.update_idletasks()
+            width = self.winfo_width()
+            height = self.winfo_height()
+            x = (self.winfo_screenwidth() // 2) - (width // 2)
+            y = (self.winfo_screenheight() // 2) - (height // 2)
+            self.geometry(f'{width}x{height}+{x}+{y}')
+        finally:
+            self.deiconify()
 
     # ... (el resto del archivo no cambia) ...
     def _crear_widgets(self):

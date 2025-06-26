@@ -3,14 +3,16 @@ import customtkinter as ctk
 from tkinter import messagebox
 from config_manager import load_settings, save_settings, DEFAULT_SETTINGS
 from data_manager import play_sound_if_enabled
-from config import ICON_PATH # <-- Se importa la ruta del ícono
+from config import ICON_PATH
 
 class SettingsWindow(ctk.CTkToplevel):
     def __init__(self, parent):
         super().__init__(parent)
         self.parent = parent
+        
+        self.withdraw() # Ocultar
 
-        self.iconbitmap(ICON_PATH) # <-- Se establece el ícono para esta ventana
+        self.iconbitmap(ICON_PATH)
         self.title("Configuración")
         self.geometry("400x300")
         self.grab_set()
@@ -20,6 +22,21 @@ class SettingsWindow(ctk.CTkToplevel):
         self.settings = load_settings()
         self._crear_widgets()
 
+        self.after(10, self._center_and_show) # Centrar y mostrar
+
+    def _center_and_show(self):
+        """Centra la ventana en la pantalla y la hace visible."""
+        try:
+            self.update_idletasks()
+            width = self.winfo_width()
+            height = self.winfo_height()
+            x = (self.winfo_screenwidth() // 2) - (width // 2)
+            y = (self.winfo_screenheight() // 2) - (height // 2)
+            self.geometry(f'{width}x{height}+{x}+{y}')
+        finally:
+            self.deiconify()
+    
+    # ... (el resto del archivo no cambia) ...
     def _crear_widgets(self):
         main_frame = ctk.CTkFrame(self, fg_color="transparent")
         main_frame.pack(expand=True, fill='both', padx=20, pady=20)

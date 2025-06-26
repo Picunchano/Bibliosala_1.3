@@ -29,16 +29,11 @@ DB_CONFIG = {
 ADMIN_USERNAME = "admin"
 ADMIN_PASSWORD = "1234"
 
-
-# --- INICIO DE LA MODIFICACIÓN ---
-# Ahora construimos las rutas completas a los archivos usando la ruta base (BASE_DIR).
-# Esto asegura que el programa siempre los encontrará.
-
+# --- Rutas a los Archivos de Recursos ---
+# Aquí se construye la ruta completa y correcta a tus archivos
 ICON_PATH = os.path.join(BASE_DIR, "pictures", "icono.ico")
 LOGO_PATH = os.path.join(BASE_DIR, "pictures", "transp.png")
 SOUND_EFFECT_PATH = os.path.join(BASE_DIR, "sound", "ButtonPlate Click (Minecraft Sound) - Sound Effect for editing.wav")
-# --- FIN DE LA MODIFICACIÓN ---
-
 
 # --- Configuración de Salas por Defecto ---
 SALAS_DISPONIBLES_DEFAULT = [f"A{i}" for i in range(1, 15)]

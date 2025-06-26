@@ -15,7 +15,7 @@ class MainMenuWindow(ctk.CTkFrame):
         self._create_widgets()
 
     def _create_widgets(self):
-        title_label = ctk.CTkLabel(self, text="Gestión de Salas - Menú Principal", font=ctk.CTkFont(size=24, weight="bold"))
+        title_label = ctk.CTkLabel(self, text="Gestión de Salas", font=ctk.CTkFont(size=24, weight="bold"))
         title_label.pack(pady=40)
 
         button_frame = ctk.CTkFrame(self, fg_color="transparent")

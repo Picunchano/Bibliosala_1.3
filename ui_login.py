@@ -1,15 +1,18 @@
-# --- Archivo Actualizado: ui_login.py ---
+# --- Archivo Actualizado y Corregido: ui_login.py ---
 import customtkinter as ctk
 from tkinter import messagebox
 from data_manager import validate_user, play_sound_if_enabled
-from config import ICON_PATH  # <-- Se importa la ruta del ícono
+from config import ICON_PATH  # <-- 1. Se importa la ruta del ícono
 
 class LoginWindow(ctk.CTkToplevel):
     def __init__(self, parent):
         super().__init__(parent)
         self.parent = parent
         
-        self.iconbitmap(ICON_PATH)  # <-- Se establece el ícono para esta ventana
+        # --- INICIO DE LA CORRECCIÓN ---
+        self.iconbitmap(ICON_PATH)  # <-- 2. Se establece el ícono para esta ventana
+        # --- FIN DE LA CORRECCIÓN ---
+
         self.title("Iniciar Sesión")
         self.geometry("350x280")
         self.resizable(False, False)
